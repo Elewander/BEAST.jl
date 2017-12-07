@@ -2,7 +2,7 @@ export creategaussian
 export derive
 export integrate
 export fouriertransform
-
+export createmodulatedgaussian
 
 immutable Gaussian{T}
     scaling::T
@@ -53,3 +53,32 @@ Returns a function that corresponds to a primitive of `f` whose value is 0 at -i
 integrate(g::Gaussian) = s -> erfc(-4 * (s-g.delay)/g.width) / 2;
 
 derive(g::Gaussian) =  s -> g(s) * (-8 * (s-g.delay)/g.width) * (4/g.width)
+
+"""
+```math
+    f(t) = e^{-\frac{(t-t_0)^2}{2 \sigma^2}} cos(2 \pi f_0 (t-t_0))
+```
+"""
+immutable ModulatedGaussian{T}
+    scaling::T
+    sigma::T
+    delay::T
+    frequency::T
+end
+
+"""
+    createmodulatedgaussian(frequency, bandwidth, delay, amplitude)
+
+Returns a modulated gaussian function where sigma = 6/(2*pi*bandwidth).
+frequency: central frequency
+bandwidth: frequency bandwidth
+delay: time of peak amplitude
+amplitude: peak amplitude
+"""
+function createmodulatedgaussian(frequency, bandwidth, delay, amplitude=one(typeof(frequency)))
+	ModulatedGaussian(amplitude, 6/(2*pi*bandwidth), delay, frequency)
+end
+
+(mg::ModulatedGaussian)(s::Real) = exp(-(s-mg.delay)^2/(2*mg.sigma^2)) * cos(2*pi*mg.frequency*(s-mg.delay));
+derive(mg::ModulatedGaussian) = s -> exp(-(s-mg.delay)^2/(2*mg.sigma^2)) * (-(s-mg.delay) / mg.sigma^2 * cos(2*pi*mg.frequency*(s-mg.delay)) - 2*pi*mg.frequency * sin(2*pi*mg.frequency*(s-mg.delay)));
+integrate(mg::ModulatedGaussian) = s -> sqrt(pi/2) * mg.sigma * exp(-2*(pi*mg.frequency*mg.sigma)^2) * real(erfc(-((s-mg.delay) + 2*im*pi*mg.frequency*mg.sigma^2) / (sqrt(2)*mg.sigma)));
