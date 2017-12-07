@@ -1,5 +1,6 @@
 export creategaussian
 export derive
+export integrate
 export fouriertransform
 
 
@@ -41,5 +42,14 @@ function fouriertransform(a::Array, dt, t0, dim=1)
     b, dω, ω0
 end
 
+"""
+    integrate(f)
+
+Returns a function that corresponds to a primitive of `f` whose value is 0 at -infinity.
+```math
+    F(t) = \int_{-\infty}{t} f(x) dx
+```
+"""
+integrate(g::Gaussian) = s -> erfc(-4 * (s-g.delay)/g.width) / 2;
 
 derive(g::Gaussian) =  s -> g(s) * (-8 * (s-g.delay)/g.width) * (4/g.width)
